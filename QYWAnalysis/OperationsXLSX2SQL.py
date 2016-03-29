@@ -21,7 +21,7 @@ for name in names:
         # 行循环
         for row in xrange(bookSheet.nrows):
             if row > 0:
-                sqlStr = 'INSERT INTO qyw_4th_user(USER_ID, VISIT_OP, VISIT_TIME, OP, HOSPITAL_ID, IS_LOGIN, USER_RESOURCE, APP_UUID, IMEI_ID, CHANNEL_ID, PHONETYPE) VALUES ('
+                sqlStr = 'INSERT INTO qyw_4th_visit(USER_ID, VISIT_OP, VISIT_TIME, OP, HOSPITAL_ID, IS_LOGIN, USER_RESOURCE, APP_UUID, IMEI_ID, CHANNEL_ID, PHONETYPE) VALUES ('
                 for col in xrange(bookSheet.ncols):
                     cell = bookSheet.cell(row, col)
                     cell_value = cell.value
