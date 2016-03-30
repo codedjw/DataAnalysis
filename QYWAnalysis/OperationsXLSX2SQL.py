@@ -56,6 +56,7 @@ for name, hid in hospitals.items():
                                                 find = True
                                     if not find and k == 'HOSPITAL_ID': # 保证在电子表格中的每一项都有HOSPITAL_ID
                                         vv = hid
+                                        find = True
                                     if find:
                                         sqlHead += k+','
                                         sqlTail += '\''+vv+'\''+','
