@@ -9,7 +9,7 @@ sql_prefix = '/Users/dujiawei/Desktop/流程挖掘案例/趣医网/趣医网-第
 hospitals = {'安徽省中医院_visit':'5510002', '武汉市中心医院_visit':'270001', '安徽省中医院_visit_no_params':'5510002', '武汉市中心医院_visit_no_params':'270001'}
 
 for name, hid in hospitals.items():
-    params = [{'OP':(['op'],0)}, {'HOSPITAL_ID':(['hospitalId','hospitalID','HOSPITAL_ID'],0)}, {'IS_LOGIN':(['isLogin'],0)}, {'USER_RESOURCE':(['operateUserSource'],0)}, {'APP_UUID':(['APP_UUID'],0)}, {'IMEI_ID':(['IMEI_ID'],0)}, {'CHANNEL_ID':(['CHANNEL_ID'],0)}, {'PHONETYPE':(['PHONETYPE'],0)}]
+    params = [{'OP':(['op'],0)}, {'HOSPITAL_ID':(['hospitalId','hospitalID','HOSPITAL_ID'],0)}, {'USER_VS_ID':(['USER_VS_ID'],0)}, {'PUBLIC_SERVICE_TYPE':(['PUBLIC_SERVICE_TYPE'],0)}, {'IS_LOGIN':(['isLogin'],0)}, {'USER_RESOURCE':(['operateUserSource'],0)}, {'APP_UUID':(['APP_UUID'],0)}, {'IMEI_ID':(['IMEI_ID'],0)}, {'CHANNEL_ID':(['CHANNEL_ID'],0)}, {'PHONETYPE':(['PHONETYPE'],0)}]
     xls_file = xls_prefix + name +'.xlsx'
     workbook = xlrd.open_workbook(xls_file)
     print "There are {} sheets in the workbook".format(workbook.nsheets)
@@ -52,6 +52,12 @@ for name, hid in hospitals.items():
                                             vv = decodejson[ll]
                                             if k == 'HOSPITAL_ID' and decodejson[ll] != hid:
                                                 continue
+                                            elif k == 'USER_VS_ID':
+                                                try:
+                                                    uvid = int(decodejson[ll])
+                                                    find = True
+                                                except:
+                                                    continue
                                             else:
                                                 find = True
                                     if not find and k == 'HOSPITAL_ID': # 保证在电子表格中的每一项都有HOSPITAL_ID
