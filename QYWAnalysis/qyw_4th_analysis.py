@@ -23,8 +23,8 @@ import matplotlib.pylab as plt
 from matplotlib import font_manager
 
 myFont = font_manager.FontProperties(fname='/Library/Fonts/Songti.ttc')
-titleSize = 12
-tipSize = 10
+titleSize = 14
+tipSize = 12
 
 def drawPieChart(data, labels, title):
     fig = plt.figure(dpi=100, figsize=(8,8))
@@ -37,6 +37,9 @@ def drawPieChart(data, labels, title):
     ax1.set_aspect(1)
     #plt.show()
     plt.savefig(cur_file_dir+'/'+title+'.png', format='png')
+    plt.cla()
+    plt.clf()
+    plt.close()
     print 'drawPieChart',title,'over'
 
 def drawNBarChart(data_label_colors, xindex, xlabel, ylabel, title):
@@ -75,7 +78,27 @@ def drawNBarChart(data_label_colors, xindex, xlabel, ylabel, title):
     
     plt.tight_layout()
     plt.savefig(cur_file_dir+'/'+title+'.png', format='png')
+    plt.cla()
+    plt.clf()
+    plt.close()
     print 'drawNBarChart',title,'over'
+    
+def drawLineChart(pd_series, title, xlabel, ylabel):
+    ax = pd_series.plot(figsize=(14,8))
+    for label in ax.get_xticklabels(): #xtick
+        label.set_fontproperties(myFont)
+    for label in ax.get_yticklabels(): #ytick
+        label.set_fontproperties(myFont)
+    for label in ax.get_label(): # legend
+        label.set_fontproperties(myFont)
+    ax.set_title(title, fontproperties=myFont, size=titleSize)
+    ax.set_xlabel(xlabel, fontproperties=myFont, size=tipSize)
+    ax.set_ylabel(ylabel, fontproperties=myFont, size=tipSize)
+    plt.savefig(cur_file_dir+'/'+title+'.png', format='png')
+    plt.cla()
+    plt.clf()
+    plt.close()
+    print 'drawLineChart',title,'over'
     
 import pandas as pd, MySQLdb
 
@@ -113,6 +136,7 @@ try:
                     data_label_colors.append((province_merge_pivot[hid], hname, bar_colors[i]))
                 i += 1
             drawNBarChart(data_label_colors, province_merge_pivot.index, u'省份', u'用户数量', title)
+    
     ########## 登录方式分析 ##########
     publicservice_hid_all = pd.read_sql('''
     SELECT CONCAT_WS('@', IF(t2.PUBLIC_SERVICE_MEAN IS null, '其他渠道', t2.PUBLIC_SERVICE_MEAN), t1.PUBLIC_SERVICE_TYPE) AS PUBLIC_SERVICE_TYPE, USER_CNT FROM (SELECT PUBLIC_SERVICE_TYPE, COUNT(DISTINCT USER_ID) AS USER_CNT FROM qyw.qyw_4th_visit WHERE PUBLIC_SERVICE_TYPE IS NOT null GROUP BY PUBLIC_SERVICE_TYPE) AS t1 LEFT JOIN (SELECT * FROM qyw.qyw_4th_public_service_type) AS t2 ON t1.PUBLIC_SERVICE_TYPE = t2.PUBLIC_SERVICE_TYPE;
@@ -124,6 +148,21 @@ try:
     drawPieChart(publicservice_hid_main[:4], publicservice_hid_main[:4].index, publicservice_hid_main.name+u'饼图')
     ####### n bar charts ######
     drawNBarChart([(publicservice_hid.values, u'登录方式', bar_colors[0])], publicservice_hid.index, u'登录方式', u'用户数量', publicservice_hid.name+u'柱状图')
+    
+    ########## 使用产品时间 ##########
+    sqls = [('''
+    SELECT CONCAT_WS(':',SUBSTRING_INDEX(SUBSTRING_INDEX(VISIT_TIME,' ',-1),':',2),'00') AS VISIT_TIME, COUNT(*) AS CNT FROM qyw.qyw_4th_visit GROUP BY SUBSTRING_INDEX(SUBSTRING_INDEX(VISIT_TIME,' ',-1),':',2) ORDER BY VISIT_TIME;
+    ''',7,u'日均操作时间分布（分钟级）',u'操作时间',u'操作数量'),('''
+    SELECT CONCAT_WS(':',SUBSTRING_INDEX(VISIT_TIME,':',2),'00') AS VISIT_TIME, COUNT(*) AS CNT FROM qyw.qyw_4th_visit GROUP BY SUBSTRING_INDEX(VISIT_TIME,':',2) ORDER BY VISIT_TIME;
+    ''',1,u'七日操作时间总分布（分钟级）',u'操作时间',u'操作数量'),('''
+    SELECT CONCAT_WS(':',SUBSTRING_INDEX(SUBSTRING_INDEX(VISIT_TIME,' ',-1),':',2),'00') AS VISIT_TIME, COUNT(DISTINCT USER_ID) AS CNT FROM qyw.qyw_4th_visit GROUP BY SUBSTRING_INDEX(SUBSTRING_INDEX(VISIT_TIME,' ',-1),':',2) ORDER BY VISIT_TIME;
+    ''',7,u'日均在线用户时间分布（分钟级）',u'操作时间',u'用户数量'),('''
+    SELECT CONCAT_WS(':',SUBSTRING_INDEX(VISIT_TIME,':',2),'00') AS VISIT_TIME, COUNT(DISTINCT USER_ID) AS CNT FROM qyw.qyw_4th_visit GROUP BY SUBSTRING_INDEX(VISIT_TIME,':',2) ORDER BY VISIT_TIME;
+    ''',1,u'七日在线用户总分布（分钟级）',u'操作时间',u'用户数量')]
+    for sql, divided, title, xlabel, ylabel in sqls:
+        df_frame = pd.read_sql(sql, con=conn)
+        df_series = pd.Series(df_frame['CNT'].values/divided, index=df_frame['VISIT_TIME'], name=title)
+        drawLineChart(df_series, df_series.name, xlabel, ylabel)
 except:
     pass
 finally:
