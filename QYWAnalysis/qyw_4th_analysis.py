@@ -19,7 +19,7 @@ def cur_file_dir():
 
 cur_file_dir = cur_file_dir()
 
-import matplotlib.pylab as plt
+import matplotlib.pylab as plt, numpy as np
 from matplotlib import font_manager
 
 myFont = font_manager.FontProperties(fname='/Library/Fonts/Songti.ttc')
@@ -43,7 +43,6 @@ def drawPieChart(data, labels, title):
     print 'drawPieChart',title,'over'
 
 def drawNBarChart(data_label_colors, xindex, xlabel, ylabel, title):
-    import numpy as np
     n_groups = xindex.size
     fig, ax = plt.subplots(dpi=100, figsize=(14,8))
 
@@ -83,10 +82,10 @@ def drawNBarChart(data_label_colors, xindex, xlabel, ylabel, title):
     plt.close()
     print 'drawNBarChart',title,'over'
     
-def drawLineChart(pd_series, title, xlabel, ylabel):
+def drawLineChart(pd_series, title, xlabel, ylabel, xticks, xticklabels):
     ax = pd_series.plot(figsize=(14,8))
-    for label in ax.get_xticklabels(): #xtick
-        label.set_fontproperties(myFont)
+    #for label in ax.get_xticklabels(): #xtick
+    #    label.set_fontproperties(myFont)
     for label in ax.get_yticklabels(): #ytick
         label.set_fontproperties(myFont)
     for label in ax.get_label(): # legend
@@ -94,6 +93,8 @@ def drawLineChart(pd_series, title, xlabel, ylabel):
     ax.set_title(title, fontproperties=myFont, size=titleSize)
     ax.set_xlabel(xlabel, fontproperties=myFont, size=tipSize)
     ax.set_ylabel(ylabel, fontproperties=myFont, size=tipSize)
+    ax.set_xticks(xticks)
+    ax.set_xticklabels(xticklabels, fontproperties=myFont, size=tipSize)
     plt.savefig(cur_file_dir+'/'+title+'.png', format='png')
     plt.cla()
     plt.clf()
@@ -149,7 +150,7 @@ try:
     ####### n bar charts ######
     drawNBarChart([(publicservice_hid.values, u'登录方式', bar_colors[0])], publicservice_hid.index, u'登录方式', u'用户数量', publicservice_hid.name+u'柱状图')
     
-    ########## 使用产品时间 ##########
+    ######### 使用产品时间 ##########
     sqls = [('''
     SELECT CONCAT_WS(':',SUBSTRING_INDEX(SUBSTRING_INDEX(VISIT_TIME,' ',-1),':',2),'00') AS VISIT_TIME, COUNT(*) AS CNT FROM qyw.qyw_4th_visit GROUP BY SUBSTRING_INDEX(SUBSTRING_INDEX(VISIT_TIME,' ',-1),':',2) ORDER BY VISIT_TIME;
     ''',7,u'日均操作时间分布（分钟级）',u'操作时间',u'操作数量'),('''
@@ -162,7 +163,73 @@ try:
     for sql, divided, title, xlabel, ylabel in sqls:
         df_frame = pd.read_sql(sql, con=conn)
         df_series = pd.Series(df_frame['CNT'].values/divided, index=df_frame['VISIT_TIME'], name=title)
-        drawLineChart(df_series, df_series.name, xlabel, ylabel)
+        visit_times = []
+        cns = []
+        xticklabels = []
+        if divided == 1:
+            for i in xrange(8,16):
+                visit_day = '2016-03-'
+                if i < 10:
+                    visit_day += '0'+str(i)+' '
+                else:
+                    visit_day += str(i) + ' '
+                isXtick = True
+                for j in xrange(0,24):
+                    if j < 10:
+                        visit_hour = '0'+str(j)+':'
+                    else:
+                        visit_hour = str(j) + ':'
+                    if  j != 0:
+                        isXtick = False
+                    for k in xrange(0,60):
+                        if k < 10:
+                            visit_min = '0'+str(k)+':'
+                        else:
+                            visit_min = str(k) + ':'
+                        if  k != 0:
+                            isXtick = False
+                        visit_sec = '00'
+                        visit_time = visit_day+visit_hour+visit_min+visit_sec
+                        if isXtick:
+                            xticklabels.append(visit_time)
+                        cn = 0
+                        try:
+                            cn = df_series[visit_time]
+                            visit_times.append(visit_time)
+                            cns.append(cn)
+                        except KeyError:
+                            visit_times.append(visit_time)
+                            cns.append(cn)
+        elif divided == 7:
+            for j in xrange(0,24):
+                if j < 10:
+                    visit_hour = '0'+str(j)+':'
+                else:
+                    visit_hour = str(j) + ':'
+                isXtick = True
+                if j % 3 != 0:
+                    isXtick = False
+                for k in xrange(0,60):
+                    if k < 10:
+                        visit_min = '0'+str(k)+':'
+                    else:
+                        visit_min = str(k) + ':'
+                    if k != 0:
+                        isXtick = False
+                    visit_sec = '00'
+                    visit_time = visit_hour+visit_min+visit_sec
+                    if isXtick:
+                        xticklabels.append(visit_time)
+                    cn = 0
+                    try:
+                        cn = df_series[visit_time]
+                        visit_times.append(visit_time)
+                        cns.append(cn)
+                    except KeyError:
+                        visit_times.append(visit_time)
+                        cns.append(cn)
+        df_new_series = pd.Series(cns, index=visit_times, name=title)
+        drawLineChart(df_new_series, df_new_series.name, xlabel, ylabel, np.linspace(0, len(df_new_series), len(xticklabels)), xticklabels)
 except:
     pass
 finally:
