@@ -101,6 +101,58 @@ def drawLineChart(pd_series, title, xlabel, ylabel, xticks, xticklabels):
     plt.close()
     print 'drawLineChart',title,'over'
     
+def drawBarAXBarChart(bar1_series, bar2_series, title, xlabel, y_bar1_label, y_bar2_label, xticklabels, bar1_label, bar2_label):
+    n_groups = xticklabels.size
+    fig, ax = plt.subplots(dpi=100, figsize=(16,8))
+
+    index = np.arange(n_groups)
+    bar_width = 0.25
+
+    opacity = 0.4
+    error_config = {'ecolor': '0.3'}
+    def autolabel(ax, rects):
+        # attach some text labels
+        for rect in rects:
+            height = rect.get_height()
+            ax.text(rect.get_x() + rect.get_width()/2., 1.005*height,
+                    '%d' % int(height),
+                    ha='center', va='bottom', fontproperties=myFont, size=tipSize-1)
+    rects = plt.bar(index, bar1_series, bar_width,
+                    alpha=opacity,
+                    color='b',
+                    error_kw=error_config,
+                    label=bar1_label)
+    autolabel(ax,rects)              
+    plt.xlabel(xlabel, fontproperties=myFont, size=titleSize)
+    plt.ylabel(y_bar1_label, fontproperties=myFont, size=titleSize, color='b')
+    for label in ax.get_yticklabels():
+        label.set_color('b')
+    plt.title(title, fontproperties=myFont, size=titleSize)
+    plt.xticks(index + (1/2.)*bar_width, xticklabels, fontproperties=myFont, size=tipSize)
+    plt.legend(prop=font_manager.FontProperties(fname='/Library/Fonts/Songti.ttc', size=tipSize))
+    
+    print 'drawNBarChart',title,'1 over'
+    ax1 = ax.twinx()
+    rects1 = plt.bar(index+1*bar_width, bar2_series, bar_width,
+                    alpha=opacity,
+                    color='r',
+                    error_kw=error_config,
+                    label=bar2_label, axes=ax1)
+    autolabel(ax1,rects1)              
+    for label in ax1.get_yticklabels():
+        label.set_color('r')
+    plt.ylabel(y_bar2_label, fontproperties=myFont, size=titleSize, color='r')
+    plt.xticks(index + (2/2.)*bar_width, xticklabels, fontproperties=myFont, size=tipSize)
+    plt.legend((rects, rects1), (bar1_label, bar2_label),prop=font_manager.FontProperties(fname='/Library/Fonts/Songti.ttc', size=tipSize))
+    
+    plt.tight_layout()
+    
+    plt.savefig(cur_file_dir+'/'+title+'.png', format='png')
+    plt.cla()
+    plt.clf()
+    plt.close()
+    print 'drawNBarChart',title,'2 over'
+    
 import pandas as pd, MySQLdb
 
 conn = MySQLdb.connect(host='localhost',user='root',passwd='',db='qyw', charset='utf8')
@@ -230,6 +282,28 @@ try:
                         cns.append(cn)
         df_new_series = pd.Series(cns, index=visit_times, name=title)
         drawLineChart(df_new_series, df_new_series.name, xlabel, ylabel, np.linspace(0, len(df_new_series), len(xticklabels)), xticklabels)
+    ########## 用户消费金额分析 #########
+    df_amount = pd.read_sql('''SELECT t1.USER_ID, t1.VISIT_TIME, t2.MEANS, COUNT(*) AS VISIT_CNT, AVG(AMOUNT) AS AVG FROM qyw.qyw_4th_visit_pay_base AS t1 INNER JOIN (SELECT VISIT_OP, GROUP_CONCAT(MEAN) AS MEANS, GROUP_CONCAT(CATEGORY) AS CATEGORIES, COUNT(*) FROM qyw.qyw_4th_business_dict GROUP BY VISIT_OP) AS t2 ON t1.VISIT_OP=t2.VISIT_OP GROUP BY t1.USER_ID, t1.VISIT_TIME, t1.VISIT_OP ORDER BY t1.USER_ID, t1.VISIT_TIME;
+        ''', con=conn)
+    ### 消费金额 vs. 操作 ###
+    sr_op_cnt = df_amount.groupby(['MEANS'])['VISIT_CNT'].sum()
+    sr_op_sum = df_amount.groupby(['MEANS'])['AVG'].sum()
+    sr_op_mean = sr_op_sum / sr_op_cnt
+    drawPieChart(sr_op_cnt, sr_op_cnt.index, u'主要的支付类操作占比（操作数量）')
+    drawPieChart(sr_op_mean, sr_op_mean.index, u'主要的支付类操作涉及平均金额')
+    drawBarAXBarChart(sr_op_cnt, sr_op_mean, u'主要的支付类操作频次vs.平均金额', u'支付类操作', u'操作数量', u'平均金额', sr_op_cnt.index, u'操作频次', u'平均消费')
+    ### 用户消费平均情况 ###
+    df_cnt = pd.DataFrame({'USER_ID':df_amount.groupby(['USER_ID'])['AVG'].count().index,'COUNT':df_amount.groupby(['USER_ID'])['AVG'].count()}, columns=['USER_ID','COUNT'])
+    df_mean = pd.DataFrame({'USER_ID':df_amount.groupby(['USER_ID'])['AVG'].mean().index,'MEAN':df_amount.groupby(['USER_ID'])['AVG'].mean()}, columns=['USER_ID','MEAN'])
+    df_merge = pd.merge(df_cnt, df_mean, on='USER_ID')
+    sr_amount = df_merge.groupby(['MEAN'])['USER_ID'].count().sort_values(ascending=False)
+    amount_users = [sr_amount[sr_amount.index > 10].sum(), sr_amount[sr_amount.index <= 10].sum()-sr_amount[sr_amount.index <= 5].sum(), sr_amount[sr_amount.index <= 5].sum()]
+    amount_users_index = [u'大于10元', u'介于10元至5元之间', u'小于5元'];
+    sr_user_amount = pd.Series(amount_users, index=amount_users_index)
+    sr_user_amount.title=u'用户消费金额总分布'
+    drawPieChart(sr_user_amount, sr_user_amount.index, sr_user_amount.title)
+    sr_amount.index = map(lambda x: round(x,2), sr_amount.index)
+    drawNBarChart([(sr_amount[:10].values, u'Top10平均消费指数', 'b')], sr_amount[:10].index, u'平均消费金额', u'消费人数', u'Top10用户平均消费指数')
 except:
     pass
 finally:
