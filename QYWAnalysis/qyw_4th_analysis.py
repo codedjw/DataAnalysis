@@ -69,6 +69,7 @@ def drawNBarChart(data_label_colors, xindex, xlabel, ylabel, title):
         autolabel(rects)
         i += 1
                     
+    ax.yaxis.grid(True, which='major') #y坐标轴的网格使用主刻度  
     plt.xlabel(xlabel, fontproperties=myFont, size=titleSize)
     plt.ylabel(ylabel, fontproperties=myFont, size=titleSize)
     plt.title(title, fontproperties=myFont, size=titleSize)
@@ -95,6 +96,9 @@ def drawLineChart(pd_series, title, xlabel, ylabel, xticks, xticklabels):
     ax.set_ylabel(ylabel, fontproperties=myFont, size=tipSize)
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels, fontproperties=myFont, size=tipSize)
+    ax.xaxis.grid(True, which='major') #x坐标轴的网格使用主刻度  
+    ax.yaxis.grid(True, which='major') #y坐标轴的网格使用主刻度  
+    #ax.yaxis.grid(True, which='minor') #y坐标轴的网格使用次刻度  
     plt.savefig(cur_file_dir+'/'+title+'.png', format='png')
     plt.cla()
     plt.clf()
