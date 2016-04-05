@@ -23,7 +23,7 @@ for name, hid in hospitals.items():
     for bookSheet in workbook.sheets():
         print bookSheet.name
         sql_file = sql_prefix + name + '_pay.sql'
-        sql_obj = open(sql_file, 'w')
+        #sql_obj = open(sql_file, 'w')
         print xls_file, '->', sql_file
         # 行循环
         for row in xrange(bookSheet.nrows):
@@ -118,6 +118,6 @@ for name, hid in hospitals.items():
                 #    print sqlStr, cell_str
                 #    conn.rollback()
                 #print sqlStr
-                sql_obj.write(sqlStr.encode('utf-8'))
-        sql_obj.close()
+        #        sql_obj.write(sqlStr.encode('utf-8'))
+        #sql_obj.close()
     print params

@@ -175,8 +175,9 @@ try:
     for hospital in hospitals:
         for hid, hname in hospital.items():
             province_city_all = df_province_city_hid_all[df_province_city_hid_all['HOSPITAL_ID'] == hid]
-            province_city = pd.Series(province_city_all['USER_CNT'].values, index=province_city_all['PROVINCE']+' '+province_city_all['CITY'], name=hname+u'用户地域分布（第三位至第十二位）')
-            drawPieChart(province_city[2:12], province_city[2:12].index, province_city.name)
+            province_city = pd.Series(province_city_all['USER_CNT'].values, index=province_city_all['PROVINCE']+' '+province_city_all['CITY'], name=hname+u'用户地域分布')
+            drawPieChart(province_city[1:10], province_city[1:10].index, province_city.name+u'（第二位至第十位）')
+            drawNBarChart([(province_city[0:10], hname, 'b')], province_city[0:10].index, u'市级', u'用户数量', province_city.name+u'（第一位至第十位）')
     ###### n bar charts ######
     province_merge_all = df_province_city_hid_all.groupby(['HOSPITAL_ID','PROVINCE'])['USER_CNT'].sum().reset_index().sort_values(['PROVINCE','HOSPITAL_ID'],0,[True, False])
     province_merge_less = pd.merge(province_merge_all[province_merge_all['PROVINCE']!=u'安徽'], province_merge_all[province_merge_all['PROVINCE']!=u'湖北'])
@@ -209,13 +210,13 @@ try:
     ######### 使用产品时间 ##########
     sqls = [('''
     SELECT CONCAT_WS(':',SUBSTRING_INDEX(SUBSTRING_INDEX(VISIT_TIME,' ',-1),':',2),'00') AS VISIT_TIME, COUNT(*) AS CNT FROM qyw.qyw_4th_visit GROUP BY SUBSTRING_INDEX(SUBSTRING_INDEX(VISIT_TIME,' ',-1),':',2) ORDER BY VISIT_TIME;
-    ''',7,u'日均操作时间分布（分钟级）',u'操作时间',u'操作数量'),('''
+    ''',8,u'日均操作时间分布（分钟级）',u'操作时间',u'操作数量'),('''
     SELECT CONCAT_WS(':',SUBSTRING_INDEX(VISIT_TIME,':',2),'00') AS VISIT_TIME, COUNT(*) AS CNT FROM qyw.qyw_4th_visit GROUP BY SUBSTRING_INDEX(VISIT_TIME,':',2) ORDER BY VISIT_TIME;
-    ''',1,u'七日操作时间总分布（分钟级）',u'操作时间',u'操作数量'),('''
+    ''',1,u'八日操作时间总分布（分钟级）',u'操作时间',u'操作数量'),('''
     SELECT CONCAT_WS(':',SUBSTRING_INDEX(SUBSTRING_INDEX(VISIT_TIME,' ',-1),':',2),'00') AS VISIT_TIME, COUNT(DISTINCT USER_ID) AS CNT FROM qyw.qyw_4th_visit GROUP BY SUBSTRING_INDEX(SUBSTRING_INDEX(VISIT_TIME,' ',-1),':',2) ORDER BY VISIT_TIME;
-    ''',7,u'日均在线用户时间分布（分钟级）',u'操作时间',u'用户数量'),('''
+    ''',8,u'日均在线用户时间分布（分钟级）',u'操作时间',u'用户数量'),('''
     SELECT CONCAT_WS(':',SUBSTRING_INDEX(VISIT_TIME,':',2),'00') AS VISIT_TIME, COUNT(DISTINCT USER_ID) AS CNT FROM qyw.qyw_4th_visit GROUP BY SUBSTRING_INDEX(VISIT_TIME,':',2) ORDER BY VISIT_TIME;
-    ''',1,u'七日在线用户总分布（分钟级）',u'操作时间',u'用户数量')]
+    ''',1,u'八日在线用户总分布（分钟级）',u'操作时间',u'用户数量')]
     for sql, divided, title, xlabel, ylabel in sqls:
         df_frame = pd.read_sql(sql, con=conn)
         df_series = pd.Series(df_frame['CNT'].values/divided, index=df_frame['VISIT_TIME'], name=title)
@@ -256,7 +257,7 @@ try:
                         except KeyError:
                             visit_times.append(visit_time)
                             cns.append(cn)
-        elif divided == 7:
+        elif divided == 8:
             for j in xrange(0,24):
                 if j < 10:
                     visit_hour = '0'+str(j)+':'
