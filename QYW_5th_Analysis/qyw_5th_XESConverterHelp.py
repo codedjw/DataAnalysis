@@ -15,7 +15,10 @@ try:
     user_visits.insert(0, 'CASE_ID','')
     unique_users = user_visits['USER_ID'].unique()
     for user_id in unique_users:
-        single_user_visits = user_visits[user_visits['USER_ID'] == user_id].sort_values(['OPERATE_TIME'],0,[True])
+        # 一定要选择mergesort，这样才是稳定的（VISIT_TIME相同的行的index保证原有顺序）
+        single_user_visits = user_visits[user_visits['USER_ID'] == user_id].sort_values(by=['OPERATE_TIME'],ascending=[True],kind='mergesort')
+        # 一定要更新index，否则index+1不对（因为sort_values有可能调换各行的顺序）
+        single_user_visits.index = range(0,len(single_user_visits.index))
         size = len(single_user_visits.index)
         start = single_user_visits.index[0]
         date = None
